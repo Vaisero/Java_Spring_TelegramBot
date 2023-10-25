@@ -59,7 +59,7 @@ public class TelegramBot extends TelegramLongPollingBot
         {
             Logs.setLog(LogType.Error, e.getMessage());
         }
-        fileDownloader = new FileDownloader();
+        fileDownloader = new FileDownloader();//автоматическая загрузка файла
     }
 
     @Override
@@ -73,7 +73,7 @@ public class TelegramBot extends TelegramLongPollingBot
             String answer = null;
 
             if (messageText.contains("/send") && (chatID == Integer.parseInt("5010164097")))
-            {
+            {//ручная рассылка всем пользователям
                 var textToSend = messageText.substring(messageText.indexOf(" "));
                 var users = user_repository.findAll();
                 for (SQL_user user : users)
@@ -83,7 +83,6 @@ public class TelegramBot extends TelegramLongPollingBot
             }
             else
             {
-
                 switch (messageText)
                 {
                     case "/start":
@@ -127,16 +126,16 @@ public class TelegramBot extends TelegramLongPollingBot
         Logs.setLog(LogType.Info, "START MESSAGE" + user.toString());
 
         if (user.getChatID() == null)
-            user=RegisterUser(message, user);
+            user=RegisterUser(message, user);//регистрация нового пользователя в базу бота
         else
-            UpdateTimeOfLastMessage(user);
+            UpdateTimeOfLastMessage(user);//обновление даты последнего сообщения
 
-        SaveHistory(message, user, answer);
+        SaveHistory(message, user, answer);//сохранение истории сообщений
     }
     private SQL_user RegisterUser (Message message, SQL_user user)
     {
         Logs.setLog(LogType.Info, "REGISTER " + user);
-
+        //регистрация нового пользователя в базу бота
         user.setChatID(message.getChatId());
         user.setUserName(message.getChat().getUserName());
         user.setUserFirstName(message.getChat().getFirstName());
@@ -149,7 +148,7 @@ public class TelegramBot extends TelegramLongPollingBot
     }
 
     private void UpdateTimeOfLastMessage(SQL_user user)
-    {
+    {//обновление даты последнего сообщения
         Logs.setLog(LogType.Info, "UPDATE MESSAGE" + user);
         user.setLast_message_at(new Timestamp(System.currentTimeMillis()));
         user_repository.save(user);
@@ -157,7 +156,7 @@ public class TelegramBot extends TelegramLongPollingBot
     }
 
     private void SaveHistory(Message message, SQL_user user, String answer)
-    {
+    {//сохранение истории сообщений
         Logs.setLog(LogType.Info, "Add to history " + user);
 
         SQL_messages msg = new SQL_messages();
@@ -171,16 +170,16 @@ public class TelegramBot extends TelegramLongPollingBot
     }
 
 
-    @Scheduled(cron = "0 55 14 * * *")
+    @Scheduled(cron = "0 55 14 * * *")//автоматический запуск метода каждый день в 14.55
     private void Get_Daily_Domains()
-    {
+    {//удаление доменов из БД, скачивание файла, обновление доменов в БД
         domains_repository.deleteAll();
         fileDownloader.downloadFile();
         Parser();
     }
 
     private void Parser()
-    {
+    {//вывод данных из Json файла и добавление в БД
         try
         {
             JSONParser jsonParser = new JSONParser(new FileReader("/var/files/backorder.json"));
@@ -191,13 +190,13 @@ public class TelegramBot extends TelegramLongPollingBot
                 ArrayList domains = (ArrayList) obj;
                 for (Object domain:domains)
                 {
-                    var tmp = (LinkedHashMap) domain;
-                    boolean block = (boolean) tmp.get("block");
-                    String domainName = tmp.get("domainname").toString();
-                    SQL_daily_domains domains1 = new SQL_daily_domains();
-                    domains1.setDomains(domainName);
-                    domains_repository.save(domains1);
-                    Logs.setLog(LogType.Info, "(Info) " + domainName+ " - " + block);
+                    var linkedHashMap = (LinkedHashMap) domain;
+                    boolean block = (boolean) linkedHashMap.get("block");
+                    String domainName = linkedHashMap.get("domainname").toString();
+                    SQL_daily_domains daily_domains = new SQL_daily_domains();
+                    daily_domains.setDomains(domainName);
+                    domains_repository.save(daily_domains);
+                    //Logs.setLog(LogType.Info, "(Info) " + domainName+ " - " + block);
                 }
             }
         } catch (FileNotFoundException e)
@@ -210,9 +209,9 @@ public class TelegramBot extends TelegramLongPollingBot
 
     }
 
-    @Scheduled(cron = "0 0 15 * * *")
+    @Scheduled(cron = "0 0 15 * * *")//автоматический запуск метода каждый день в 15.00
     private void Send_Daily_Domains()
-    {
+    {//автоматическая отправка сообщений всем пользователям (авто-рассылка)
         var user = user_repository.findAll();
         Date date = new Date();
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
