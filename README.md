@@ -1,4 +1,4 @@
-# [M-Social_TestTask_JavaTelegramBot](https://t.me/SpringBoot2_Telegram_Bot)
+# [Java_Spring_TelegramBot](https://t.me/SpringBoot2_Telegram_Bot)
 
 
  # О проекте
